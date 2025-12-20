@@ -1,0 +1,8 @@
+{
+  "name": "Go2Grow",
+  "description": "一款 AI 驱动的生活记录与教练应用，将日常输入转化为可执行的洞察、时间轴和成长计划。",
+  "requestFramePermissions": [
+    "camera",
+    "microphone"
+  ]
+}
