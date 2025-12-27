@@ -22,8 +22,8 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, o
   // Config State
   const [baseUrl, setBaseUrl] = useState('');
   const [apiKey, setApiKey] = useState('');
-  const [imageModel, setImageModel] = useState('gemini-3-pro-image-preview'); // UPDATED default
-  const [textModel, setTextModel] = useState('gemini-2.0-flash'); // UPDATED to stable
+  const [imageModel, setImageModel] = useState('gemini-3-pro-image-preview'); 
+  const [textModel, setTextModel] = useState('gemini-3-flash-preview[x3]'); // UPDATED default
   
   // Data State
   const [isClearing, setIsClearing] = useState(false);
@@ -45,8 +45,8 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, o
           const config = JSON.parse(savedConfig);
           setBaseUrl(config.baseUrl || '');
           setApiKey(config.apiKey || '');
-          setImageModel(config.imageModel || 'gemini-3-pro-image-preview'); // UPDATED
-          setTextModel(config.textModel || 'gemini-2.0-flash'); // UPDATED
+          setImageModel(config.imageModel || 'gemini-3-pro-image-preview'); 
+          setTextModel(config.textModel || 'gemini-3-flash-preview[x3]'); // UPDATED
         } catch (e) {
           console.error("Error parsing config", e);
         }
@@ -110,7 +110,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, o
     setBaseUrl('');
     setApiKey('');
     setImageModel('gemini-3-pro-image-preview');
-    setTextModel('gemini-2.0-flash');
+    setTextModel('gemini-3-flash-preview[x3]'); // UPDATED
     localStorage.removeItem('app_api_config');
     localStorage.removeItem('image_gen_config');
     onConfigUpdate();
@@ -296,7 +296,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, o
                       value={textModel}
                       onChange={(e) => setTextModel(e.target.value)}
                       className="w-full bg-black/30 border border-white/10 rounded-xl p-3 text-xs text-slate-200 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500/50 transition-all font-mono placeholder-slate-700"
-                      placeholder="gemini-2.0-flash"
+                      placeholder="gemini-3-flash-preview[x3]"
                     />
                   </div>
                 </div>

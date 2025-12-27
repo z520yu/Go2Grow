@@ -1,4 +1,3 @@
-import { GoogleGenAI } from "@google/genai";
 import { MemoryEntry, Goal, UserProfile } from "../types";
 import { storage } from "./storage";
 
@@ -11,13 +10,12 @@ const getAIConfig = () => {
     apiKey: "sk-ZMkKgOfZjrxLlVN7Iu5Z6NxHMBvoXJm8E2ntgRvUUvhmWzRm", 
     baseUrl: "https://api.go-model.com", 
     imageModel: 'gemini-3-pro-image-preview', 
-    textModel: 'gemini-2.0-flash' // Switched to stable version
+    textModel: 'gemini-3-flash-preview[x3]' 
   };
 
   if (saved) {
     try {
       const parsed = JSON.parse(saved);
-      // Use saved values if they exist, otherwise fallback to hardcoded defaults
       return {
         apiKey: parsed.apiKey || defaults.apiKey,
         baseUrl: parsed.baseUrl || defaults.baseUrl,
@@ -46,6 +44,59 @@ const cleanJsonString = (str: string): string => {
   }
   
   return cleaned;
+};
+
+// Helper: Common Text Generation via Fetch (Bypassing SDK for Proxy Compatibility)
+const generateTextViaFetch = async (
+  prompt: string, 
+  jsonMode: boolean = false, 
+  imageBase64?: string
+): Promise<string> => {
+  const config = getAIConfig();
+  if (!config.apiKey) throw new Error("API Key not configured");
+
+  let baseUrl = config.baseUrl || "https://generativelanguage.googleapis.com";
+  // Ensure no trailing slash
+  if (baseUrl.endsWith('/')) baseUrl = baseUrl.slice(0, -1);
+  
+  // Use the configured text model
+  const model = config.textModel || 'gemini-3-flash-preview[x3]';
+  const url = `${baseUrl}/v1beta/models/${model}:generateContent?key=${config.apiKey}`;
+
+  const parts: any[] = [{ text: prompt }];
+  if (imageBase64) {
+      parts.push({
+           inlineData: {
+               mimeType: "image/jpeg",
+               data: imageBase64
+           }
+      });
+  }
+
+  const payload: any = {
+      contents: [{ parts: parts }]
+  };
+
+  if (jsonMode) {
+      payload.generationConfig = {
+          responseMimeType: "application/json"
+      };
+  }
+
+  const response = await fetch(url, {
+      method: "POST",
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+  });
+
+  if (!response.ok) {
+      const errText = await response.text();
+      console.error("Gemini Text API Error:", errText);
+      throw new Error(`API Error ${response.status}: ${errText}`);
+  }
+
+  const data = await response.json();
+  return data.candidates?.[0]?.content?.parts?.[0]?.text || "";
 };
 
 // --- Image Generation (Raw Fetch Implementation) ---
@@ -230,23 +281,10 @@ export const analyzeInput = async (
   let analysisResult: any = {};
 
   try {
-    const ai = new GoogleGenAI({ 
-        apiKey: config.apiKey,
-        baseUrl: config.baseUrl 
-    } as any);
+    const fullPrompt = systemPrompt + "\n" + userPromptContent;
+    const responseText = await generateTextViaFetch(fullPrompt, true, imageBase64);
     
-    const parts: any[] = [{ text: systemPrompt + "\n" + userPromptContent }];
-    if (imageBase64) {
-        parts.push({ inlineData: { mimeType: "image/jpeg", data: imageBase64 } });
-    }
-
-    const response = await ai.models.generateContent({
-        model: config.textModel,
-        contents: [{ parts: parts }],
-        config: { responseMimeType: "application/json" }
-    });
-    
-    analysisResult = JSON.parse(cleanJsonString(response.text || "{}"));
+    analysisResult = JSON.parse(cleanJsonString(responseText));
 
   } catch (e) {
     console.error("Text Analysis Failed:", e);
@@ -312,18 +350,8 @@ export const generateDailySummary = async (entries: MemoryEntry[]): Promise<Part
     let result: any = {};
 
     try {
-        const ai = new GoogleGenAI({ 
-            apiKey: config.apiKey,
-            baseUrl: config.baseUrl 
-        } as any);
-
-        const response = await ai.models.generateContent({
-            model: config.textModel,
-            contents: [{ parts: [{ text: prompt }] }],
-            config: { responseMimeType: "application/json" }
-        });
-
-        result = JSON.parse(cleanJsonString(response.text || "{}"));
+        const responseText = await generateTextViaFetch(prompt, true);
+        result = JSON.parse(cleanJsonString(responseText));
     } catch (e) {
         console.error("Daily Summary Text Failed:", e);
         throw e;
@@ -358,14 +386,13 @@ export const generateUserProfile = async (entries: MemoryEntry[], mode: 'witty' 
       summary: "请配置 API Key 以解锁您的画像。", 
       strengths: [], 
       areasForImprovement: [], 
-      recentMood: "迷雾重重",
+      recentMood: "迷雾重重", 
       detailedAnalysis: "数据不足，无法生成深度分析。"
   };
   
   let systemInstruction = "";
 
   if (mode === 'formal') {
-      // Formal / Professional Coach Persona
       systemInstruction = `
       你是一位资深心理咨询师和职业发展教练。请基于用户的日记记录，生成一份专业、客观且具有建设性的人物画像。
 
@@ -378,7 +405,6 @@ export const generateUserProfile = async (entries: MemoryEntry[], mode: 'witty' 
       6. **detailedAnalysis (深度解析)**：放在卡片背面的详细分析。100-150字，运用心理学视角（如认知行为模式、情绪调节机制）深入剖析。
       `;
   } else {
-      // Witty / Roast Persona (Default)
       systemInstruction = `
       你是一个毒舌、幽默、眼光犀利的AI心理侧写师。请基于用户的日记记录，生成一份有趣的人物画像。
       
@@ -409,24 +435,15 @@ export const generateUserProfile = async (entries: MemoryEntry[], mode: 'witty' 
   }`;
 
   try {
-    const ai = new GoogleGenAI({ 
-        apiKey: config.apiKey,
-        baseUrl: config.baseUrl 
-    } as any);
-
-    const response = await ai.models.generateContent({
-        model: config.textModel,
-        contents: [{ parts: [{ text: prompt }] }],
-        config: { responseMimeType: "application/json" }
-    });
-    return JSON.parse(cleanJsonString(response.text || "{}"));
+    const responseText = await generateTextViaFetch(prompt, true);
+    return JSON.parse(cleanJsonString(responseText));
   } catch (e) {
     return { 
         archetype: "连接失败者", 
         summary: "分析服务暂时罢工了。", 
         strengths: ["耐心等待"], 
         areasForImprovement: ["网络连接"], 
-        recentMood: "掉线",
+        recentMood: "掉线", 
         detailedAnalysis: "请检查您的 API 配置或网络连接是否正常。" 
     };
   }
@@ -440,20 +457,10 @@ export const checkGoals = async (goals: Goal[], entries: MemoryEntry[]): Promise
   if (activeGoals.length === 0) return "无活跃的战略目标。";
 
   const recent = entries.slice(0, 15).map(e => ({ t: e.title, s: e.summary }));
-  // Updated prompt back to "Strategic Goals"
   const prompt = `你是魔鬼教练。用户的【战略目标】:${JSON.stringify(activeGoals.map(g=>g.text))}。近期行为记录:${JSON.stringify(recent)}。请分析用户是否在为这些目标付出努力，并给出一段简短、犀利的中文反馈和行动建议(100字内)。`;
 
   try {
-    const ai = new GoogleGenAI({ 
-        apiKey: config.apiKey,
-        baseUrl: config.baseUrl 
-    } as any);
-
-    const response = await ai.models.generateContent({
-        model: config.textModel,
-        contents: [{ parts: [{ text: prompt }] }]
-    });
-    return response.text || "暂无反馈";
+    return await generateTextViaFetch(prompt, false);
   } catch (e) {
     return "连接错误。";
   }
