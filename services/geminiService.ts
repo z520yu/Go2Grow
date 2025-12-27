@@ -5,17 +5,37 @@ import { storage } from "./storage";
 const getAIConfig = () => {
   const saved = typeof window !== 'undefined' ? localStorage.getItem('app_api_config') : null;
   
-  // Hardcoded defaults per user request
+  // Priority: 
+  // 1. LocalStorage (User overrides in UI)
+  // 2. Environment Variables (Vercel/Local .env) - SAFELY ACCESSED
+  // 3. Hardcoded Fallback
+  
+  // Safe access to environment variables
+  const getEnv = (key: string, fallback: string) => {
+    try {
+      // @ts-ignore
+      return (import.meta.env && import.meta.env[key]) || fallback;
+    } catch (e) {
+      return fallback;
+    }
+  };
+  
+  const envApiKey = getEnv("VITE_API_KEY", "sk-ZMkKgOfZjrxLlVN7Iu5Z6NxHMBvoXJm8E2ntgRvUUvhmWzRm");
+  const envBaseUrl = getEnv("VITE_API_BASE_URL", "https://api.go-model.com");
+  const envTextModel = getEnv("VITE_TEXT_MODEL", "gemini-3-flash-preview[x3]");
+  const envImageModel = getEnv("VITE_IMAGE_MODEL", "gemini-3-pro-image-preview");
+
   const defaults = {
-    apiKey: "sk-ZMkKgOfZjrxLlVN7Iu5Z6NxHMBvoXJm8E2ntgRvUUvhmWzRm", 
-    baseUrl: "https://api.go-model.com", 
-    imageModel: 'gemini-3-pro-image-preview', 
-    textModel: 'gemini-3-flash-preview[x3]' 
+    apiKey: envApiKey,
+    baseUrl: envBaseUrl,
+    imageModel: envImageModel,
+    textModel: envTextModel
   };
 
   if (saved) {
     try {
       const parsed = JSON.parse(saved);
+      // Only use saved values if they exist, otherwise fallback to defaults (env vars)
       return {
         apiKey: parsed.apiKey || defaults.apiKey,
         baseUrl: parsed.baseUrl || defaults.baseUrl,

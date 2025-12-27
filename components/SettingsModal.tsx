@@ -22,8 +22,8 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, o
   // Config State
   const [baseUrl, setBaseUrl] = useState('');
   const [apiKey, setApiKey] = useState('');
-  const [imageModel, setImageModel] = useState('gemini-3-pro-image-preview'); 
-  const [textModel, setTextModel] = useState('gemini-3-flash-preview[x3]'); // UPDATED default
+  const [imageModel, setImageModel] = useState('');
+  const [textModel, setTextModel] = useState('');
   
   // Data State
   const [isClearing, setIsClearing] = useState(false);
@@ -36,24 +36,48 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, o
   const [selectedStyle, setSelectedStyle] = useState<string>('chiikawa');
   const [customStyleText, setCustomStyleText] = useState('');
 
+  // Safe Env Helper
+  const getEnv = (key: string, fallback: string) => {
+    try {
+      // @ts-ignore
+      return (import.meta.env && import.meta.env[key]) || fallback;
+    } catch (e) {
+      return fallback;
+    }
+  };
+
   useEffect(() => {
     if (isOpen) {
-      // Load Config
+      // Load Config from LocalStorage
       const savedConfig = localStorage.getItem('app_api_config');
+      
+      // Get Environment Defaults (Fallback)
+      const envApiKey = getEnv("VITE_API_KEY", "sk-ZMkKgOfZjrxLlVN7Iu5Z6NxHMBvoXJm8E2ntgRvUUvhmWzRm");
+      const envBaseUrl = getEnv("VITE_API_BASE_URL", "https://api.go-model.com");
+      const envTextModel = getEnv("VITE_TEXT_MODEL", "gemini-3-flash-preview[x3]");
+      const envImageModel = getEnv("VITE_IMAGE_MODEL", "gemini-3-pro-image-preview");
+
       if (savedConfig) {
         try {
           const config = JSON.parse(savedConfig);
-          setBaseUrl(config.baseUrl || '');
-          setApiKey(config.apiKey || '');
-          setImageModel(config.imageModel || 'gemini-3-pro-image-preview'); 
-          setTextModel(config.textModel || 'gemini-3-flash-preview[x3]'); // UPDATED
+          setBaseUrl(config.baseUrl || envBaseUrl);
+          setApiKey(config.apiKey || envApiKey);
+          setImageModel(config.imageModel || envImageModel); 
+          setTextModel(config.textModel || envTextModel);
         } catch (e) {
           console.error("Error parsing config", e);
+          // Fallback to env
+          setBaseUrl(envBaseUrl);
+          setApiKey(envApiKey);
+          setImageModel(envImageModel);
+          setTextModel(envTextModel);
         }
       } else {
-        // Load Defaults matching geminiService if nothing saved
-        setBaseUrl("https://api.go-model.com");
-        setApiKey("sk-ZMkKgOfZjrxLlVN7Iu5Z6NxHMBvoXJm8E2ntgRvUUvhmWzRm");
+        // No local config? Load Defaults from ENV
+        setBaseUrl(envBaseUrl);
+        setApiKey(envApiKey);
+        setImageModel(envImageModel);
+        setTextModel(envTextModel);
       }
 
       // Check for mock images (SCAN LAST 30 DAYS)
@@ -107,14 +131,23 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, o
   };
 
   const handleResetConfig = () => {
-    setBaseUrl('');
-    setApiKey('');
-    setImageModel('gemini-3-pro-image-preview');
-    setTextModel('gemini-3-flash-preview[x3]'); // UPDATED
+    // Reset to ENV vars
+    const envApiKey = getEnv("VITE_API_KEY", "sk-ZMkKgOfZjrxLlVN7Iu5Z6NxHMBvoXJm8E2ntgRvUUvhmWzRm");
+    const envBaseUrl = getEnv("VITE_API_BASE_URL", "https://api.go-model.com");
+    const envTextModel = getEnv("VITE_TEXT_MODEL", "gemini-3-flash-preview[x3]");
+    const envImageModel = getEnv("VITE_IMAGE_MODEL", "gemini-3-pro-image-preview");
+
+    setBaseUrl(envBaseUrl);
+    setApiKey(envApiKey);
+    setImageModel(envImageModel);
+    setTextModel(envTextModel);
+    
+    // Clear Local Storage
     localStorage.removeItem('app_api_config');
     localStorage.removeItem('image_gen_config');
+    
     onConfigUpdate();
-    onClose();
+    // onClose(); // Optional: Keep open to show reset values
   };
 
   const handleClearData = async () => {
@@ -243,7 +276,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, o
             <div className="space-y-5 animate-fadeIn">
               <div className="bg-indigo-900/10 rounded-lg p-3 border border-indigo-500/10">
                 <p className="text-[10px] text-indigo-300 leading-relaxed">
-                  配置 AI 代理服务 (如 OneAPI/Go-Model)。此配置将用于所有文本分析与绘图任务。
+                  配置 AI 代理服务 (如 OneAPI/Go-Model)。默认配置已通过环境变量加载，您也可以在此覆盖。
                 </p>
               </div>
 
@@ -307,7 +340,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, o
                   onClick={handleResetConfig}
                   className="px-4 py-2 rounded-xl border border-white/10 text-slate-500 hover:text-white text-xs font-medium transition-colors flex items-center gap-2 hover:bg-white/5"
                 >
-                  <RotateCcw size={12} /> 重置
+                  <RotateCcw size={12} /> 恢复默认 (Env)
                 </button>
                 <button 
                   onClick={handleSave}
