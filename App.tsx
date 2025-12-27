@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { Activity, Plus, GitCommit, UserCircle, Cpu, X, Clock, ChevronRight, CalendarDays, Sparkles, Loader2, Settings as SettingsIcon, Target, TrendingUp, Trophy } from 'lucide-react';
+import { Activity, Plus, GitCommit, UserCircle, Cpu, X, Clock, ChevronRight, CalendarDays, Sparkles, Loader2, Settings as SettingsIcon, Target, TrendingUp, Trophy, User } from 'lucide-react';
 import { InputModule } from './components/InputModule';
 import { MemoryCard } from './components/MemoryCard';
 import { TimelineView } from './components/TimelineView';
-import { MilestoneView } from './components/MilestoneView'; // New Import
+import { MilestoneView } from './components/MilestoneView'; 
 import { ProfileView } from './components/ProfileView';
 import { GoalsView } from './components/GoalsView';
+import { PersonalView } from './components/PersonalView'; // New Import
 import { Background3D } from './components/Background3D';
 import { SettingsModal } from './components/SettingsModal';
 import { MemoryEntry, Goal, AppView } from './types';
@@ -73,7 +74,7 @@ const MemoryFragment: React.FC<{ url: string; index: number; total: number }> = 
         top, 
         left, 
         transform: 'translate(-50%, -50%)',
-        animationDelay: `${index * 80}ms`, 
+        animationDelay: `${index * 30}ms`, // Faster stagger (was 80)
         zIndex: 20
       }}
     >
@@ -104,7 +105,7 @@ const IntroSequence = ({ onComplete }: { onComplete: () => void }) => {
 
   useEffect(() => {
     if (stage === 'playing') {
-      const cycleTime = 1800;
+      const cycleTime = 800; // Much faster cycle (was 1800)
       
       const timer = setTimeout(() => {
         setIsTransitioning(true); 
@@ -116,7 +117,7 @@ const IntroSequence = ({ onComplete }: { onComplete: () => void }) => {
           } else {
             setStage('final'); 
           }
-        }, 400); 
+        }, 100); // Faster transition fade (was 400)
         
       }, cycleTime);
 
@@ -160,13 +161,14 @@ const IntroSequence = ({ onComplete }: { onComplete: () => void }) => {
     <div className="fixed inset-0 z-[100] bg-[#020202] overflow-hidden flex items-center justify-center">
       <div 
         key={themeIndex} 
-        className={`relative w-full h-full transition-all duration-400 ${isTransitioning ? 'opacity-0 scale-110 blur-xl' : 'opacity-100 scale-100 blur-0'}`}
+        className={`relative w-full h-full transition-all duration-100 ${isTransitioning ? 'opacity-0 scale-110 blur-xl' : 'opacity-100 scale-100 blur-0'}`}
       >
         <div className="absolute inset-0 flex flex-col items-center justify-center z-50 pointer-events-none mix-blend-screen">
           <p className="text-indigo-500 font-mono text-xs tracking-[1em] mb-4 opacity-70 animate-fadeIn">
             0{themeIndex + 1} / 0{THEMATIC_DATA.length} — {currentTheme.subtext}
           </p>
-          <h2 className="text-8xl md:text-[12rem] font-black tracking-tighter text-white uppercase glitch-text leading-none drop-shadow-[0_0_30px_rgba(255,255,255,0.5)]" data-text={currentTheme.label}>
+          {/* Reduced font size significantly (was text-8xl md:text-[12rem]) */}
+          <h2 className="text-5xl md:text-8xl font-black tracking-tighter text-white uppercase glitch-text leading-none drop-shadow-[0_0_30px_rgba(255,255,255,0.5)]" data-text={currentTheme.label}>
             {currentTheme.label}
           </h2>
         </div>
@@ -455,7 +457,7 @@ const App = () => {
             <TimelineView entries={entries} onSelectEntry={setSelectedEntry} />
           </div>
         );
-      case AppView.MILESTONES: // New Case
+      case AppView.MILESTONES: 
         return (
             <div className="max-w-6xl mx-auto animate-slideUp pb-20">
                  <MilestoneView entries={entries} goals={goals} onSelectEntry={setSelectedEntry} />
@@ -473,6 +475,12 @@ const App = () => {
               onUpdateGoalStatus={updateGoalStatus}
             />
           </div>
+        );
+      case AppView.PERSONAL:
+        return (
+            <div className="pb-20">
+                <PersonalView entries={entries} onOpenSettings={() => setIsSettingsOpen(true)} />
+            </div>
         );
     }
   };
@@ -522,6 +530,7 @@ const App = () => {
 
               <DesktopNavLink active={view === AppView.PROFILE} onClick={() => setView(AppView.PROFILE)} label="画像" />
               <DesktopNavLink active={view === AppView.GOALS} onClick={() => setView(AppView.GOALS)} label="目标" />
+              <DesktopNavLink active={view === AppView.PERSONAL} onClick={() => setView(AppView.PERSONAL)} label="我的" />
               
               <button onClick={() => setIsSettingsOpen(true)} className="text-slate-500 hover:text-white transition-colors">
                 <SettingsIcon size={18} />
@@ -540,7 +549,7 @@ const App = () => {
             </button>
         </nav>
 
-        {/* Mobile Bottom Navigation - Added Milestone Button */}
+        {/* Mobile Bottom Navigation */}
         <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-black/80 backdrop-blur-2xl border-t border-white/10 z-50 h-24">
           <div className="grid grid-cols-7 h-full items-center px-2 pb-4">
             <MobileNavBtn active={view === AppView.JOURNAL} onClick={() => setView(AppView.JOURNAL)} icon={<GitCommit size={20} strokeWidth={1} />} label="档案" />
@@ -561,8 +570,7 @@ const App = () => {
 
             <MobileNavBtn active={view === AppView.GOALS} onClick={() => setView(AppView.GOALS)} icon={<Target size={20} strokeWidth={1} />} label="目标" />
             <MobileNavBtn active={view === AppView.PROFILE} onClick={() => setView(AppView.PROFILE)} icon={<UserCircle size={20} strokeWidth={1} />} label="画像" />
-            {/* Added explicit 7th col for spacing balance or future use, currently hidden on mobile grid logic often needs exact counts */}
-            <div className="hidden"></div>
+            <MobileNavBtn active={view === AppView.PERSONAL} onClick={() => setView(AppView.PERSONAL)} icon={<User size={20} strokeWidth={1} />} label="我的" />
           </div>
         </nav>
 

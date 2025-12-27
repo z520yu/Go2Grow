@@ -41,8 +41,9 @@ export interface UserProfile {
 export enum AppView {
   JOURNAL = 'JOURNAL',
   TIMELINE = 'TIMELINE',
-  MILESTONES = 'MILESTONES', // New View
+  MILESTONES = 'MILESTONES', 
   CAPTURE = 'CAPTURE',
-  PROFILE = 'PROFILE',
-  GOALS = 'GOALS'
+  PROFILE = 'PROFILE', // This is the AI Persona
+  GOALS = 'GOALS',
+  PERSONAL = 'PERSONAL' // New User Info View
 }
