@@ -6,6 +6,16 @@ import { MemoryEntry } from '../types';
 import { BookOpen, RefreshCw } from 'lucide-react';
 import { storage } from '../services/storage';
 
+// Workaround for missing R3F JSX types in current environment
+const Group = 'group' as any;
+const Mesh = 'mesh' as any;
+const MeshPhysicalMaterial = 'meshPhysicalMaterial' as any;
+const TubeGeometry = 'tubeGeometry' as any;
+const MeshBasicMaterial = 'meshBasicMaterial' as any;
+const AmbientLight = 'ambientLight' as any;
+const PointLight = 'pointLight' as any;
+const Fog = 'fog' as any;
+
 interface TimelineViewProps {
   entries: MemoryEntry[];
   onSelectEntry?: (entry: MemoryEntry) => void;
@@ -48,17 +58,17 @@ const SpiralChip = ({ entry, position, rotation, onClick }: { entry: MemoryEntry
   const height = 1.6;
 
   return (
-    <group 
+    <Group 
         ref={ref} 
         position={position}
         rotation={rotation}
-        onClick={(e) => { e.stopPropagation(); onClick(entry); }}
+        onClick={(e: any) => { e.stopPropagation(); onClick(entry); }}
         onPointerOver={() => setHover(true)}
         onPointerOut={() => setHover(false)}
     >
       <Float speed={2} rotationIntensity={0.2} floatIntensity={0.5} floatingRange={[-0.1, 0.1]}>
           <RoundedBox args={[width, height, 0.1]} radius={0.05} smoothness={4}>
-             <meshPhysicalMaterial 
+             <MeshPhysicalMaterial 
                 color={isReport ? "#fbbf24" : "#1e293b"} 
                 roughness={0.2}
                 metalness={0.8}
@@ -107,7 +117,7 @@ const SpiralChip = ({ entry, position, rotation, onClick }: { entry: MemoryEntry
             {entry.title}
           </Text>
       </Float>
-    </group>
+    </Group>
   );
 };
 
@@ -164,12 +174,12 @@ const SpiralScene = ({ entries, onSelect }: { entries: MemoryEntry[], onSelect: 
   const curve = useMemo(() => pathPoints.length > 1 ? new THREE.CatmullRomCurve3(pathPoints) : null, [pathPoints]);
 
   return (
-    <group ref={groupRef}>
+    <Group ref={groupRef}>
       {curve && (
-         <mesh>
-            <tubeGeometry args={[curve, pathPoints.length * 8, 0.02, 8, false]} />
-            <meshBasicMaterial color="#4f46e5" transparent opacity={0.2} />
-         </mesh>
+         <Mesh>
+            <TubeGeometry args={[curve, pathPoints.length * 8, 0.02, 8, false]} />
+            <MeshBasicMaterial color="#4f46e5" transparent opacity={0.2} />
+         </Mesh>
       )}
       
       {cards.map((c) => (
@@ -191,7 +201,7 @@ const SpiralScene = ({ entries, onSelect }: { entries: MemoryEntry[], onSelect: 
          opacity={0.3}
          color="#818cf8"
       />
-    </group>
+    </Group>
   );
 };
 
@@ -231,10 +241,10 @@ export const TimelineView: React.FC<TimelineViewProps> = ({ entries, onSelectEnt
       </div>
       
       <Canvas camera={{ position: [0, 0, 6], fov: 45 }} dpr={[1, 2]}>
-        <ambientLight intensity={0.2} />
-        <pointLight position={[10, 10, 10]} intensity={1} color="#818cf8" />
-        <pointLight position={[-10, -10, 5]} intensity={0.5} color="#f43f5e" />
-        <fog attach="fog" args={['#000000', 5, 25]} />
+        <AmbientLight intensity={0.2} />
+        <PointLight position={[10, 10, 10]} intensity={1} color="#818cf8" />
+        <PointLight position={[-10, -10, 5]} intensity={0.5} color="#f43f5e" />
+        <Fog attach="fog" args={['#000000', 5, 25]} />
 
         <Suspense fallback={null}>
             <ScrollControls pages={totalPages} damping={0.2} distance={1}>
