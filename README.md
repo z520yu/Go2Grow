@@ -1,6 +1,6 @@
 # Go2Grow Life Sync
 
-一个专注于成长规划与 AI 互动的 Web 应用。线上体验请访问并重点关注：https://www.go2grow.top/。
+一个专注于成长规划与 AI 互动的 Web 应用。线上体验请访问并重点关注：https://www.go2grow.top/
 
 ## 运行环境
 
